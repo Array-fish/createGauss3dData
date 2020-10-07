@@ -1,0 +1,8 @@
+README.md
+creategauss3ddata.py
+setup.py
+creategauss3ddata.egg-info/PKG-INFO
+creategauss3ddata.egg-info/SOURCES.txt
+creategauss3ddata.egg-info/dependency_links.txt
+creategauss3ddata.egg-info/requires.txt
+creategauss3ddata.egg-info/top_level.txt
