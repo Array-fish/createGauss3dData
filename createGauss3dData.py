@@ -1,6 +1,7 @@
 from scipy.stats import multivariate_normal
 import random
 import numpy as np
+import numpy.linalg as LA
 import pandas as pd
 MEANS = np.array([
     [1, 1, 1],
@@ -15,10 +16,20 @@ testClassDataNum = 1000
 classDataNum = trainClassDataNum + testClassDataNum
 dataNum = trainClassDataNum*allClassNum + testClassDataNum*allClassNum
 
+def is_positive_semidefinite(in_np):
+    w, _ = LA.eig(in_np)
+    for one_w in w:
+        if one_w < 0:
+            return False
+    return True
+
+
 def main():
-    point_np, oneHotTrain_np, oneHotTest_np = createPoints()
+    point_np, oneHotTrain_np, oneHotTest_np = createPoints(True)
     point_np = normalize_data(point_np)
-   
+    mean_np = np.mean(point_np, axis =0)
+    min_np = np.min(point_np, axis=0)
+    max_np = np.max(point_np, axis=0)
     for cls in range(classNum):
         if cls == 0:
             trainData_np = point_np[classDataNum *cls:classDataNum * cls + trainClassDataNum]
@@ -37,28 +48,38 @@ def main():
 def normalize_data(point_np):
     min_np = np.min(point_np, axis=0)
     max_np = np.max(point_np, axis=0)
-    # print(max_np,min_np)
+    # チャネルごとに0-1の範囲になるように正規化
     point_np = (point_np - min_np) / (max_np - min_np)
+    mean_np = np.mean(point_np, axis =0)
+    min_np = np.min(point_np, axis=0)
+    max_np = np.max(point_np, axis=0)
     # print(len(np.sum(point_np, axis=1)))
-
-    for i in range(len(point_np)):
-        point_np[i] = point_np[i] / np.sum(point_np[i])
+    # データごとにチャネルの合計が1になるように正規化
+    # for i in range(len(point_np)):
+    #     point_np[i] = point_np[i] / np.sum(point_np[i])
 
     return point_np
 
 # 点群作成
-def createPoints():
+def createPoints(show_covar = False):
     covar_np = np.zeros((allClassNum, 3, 3))
-    for i in range(allClassNum):
+    i = 0
+    while i < allClassNum:
         for row in range(3):
             for col in range(row, 3):
-                covar_np[i][row][col] = random.random()
-                covar_np[i][row][col] = covar_np[i][col][row]
-        if np.linalg.det(covar_np[i]) < 0:
-            i = i - 1
+                if row == col:
+                    covar_np[i][row][col] = random.uniform(0,1.0/30)
+                else :
+                    covar_np[i][row][col] = random.uniform(-10**-2,10**-2)
+                    covar_np[i][col][row] = covar_np[i][row][col]
+        if is_positive_semidefinite(covar_np[i]):
+            i = i+1
+    if show_covar:
+        for i in range(allClassNum):
+            print(covar_np[i])
     point_np = np.array([])
     for cls in range(allClassNum):
-        clsPoint_np = np.array(multivariate_normal(mean=MEANS[cls], cov=covar_np[cls]).rvs(size=dataNum))
+        clsPoint_np = np.array(multivariate_normal(mean=MEANS[cls], cov=covar_np[cls]).rvs(size=classDataNum))
         if cls == 0:
             point_np = clsPoint_np
         else:
